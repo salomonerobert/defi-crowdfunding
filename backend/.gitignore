@@ -1,0 +1,7 @@
+# Hardhat cache, artifacts, and build directories
+cache/
+artifacts/
+coverage/
+
+# Optional Hardhat runtime environment (if using)
+HRE/
