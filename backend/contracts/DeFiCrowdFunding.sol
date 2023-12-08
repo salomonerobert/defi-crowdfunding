@@ -11,6 +11,7 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     IERC20 public usdcToken;
     mapping(address => uint256) public investments;
     address[] public investors;
+    address public owner;
     mapping(address => uint256) public refunds;
     uint256 public totalInvestment;
     bool public minimumReached = false;
@@ -19,6 +20,12 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         startDate = _startDate;
         endDate = _endDate;
         usdcToken = IERC20(_usdcTokenAddress);
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner {
+        require(msg.sender == owner, 'Caller is not owner');
+        _;
     }
 
     function invest(uint256 amount) public {
@@ -48,6 +55,10 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
             }
         }
         // Additional logic for end date
+    }
+
+    function triggerMilestoneUpdate() public onlyOwner {
+        
     }
 
     function refundInvestors() internal {
