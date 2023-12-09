@@ -57,9 +57,9 @@ const InvestmentComponent = () => {
 
 
     try {
-      const tx = await deFiCrowdFundingContract.invest(ethers.parseUnits(amount, 18));
-      await tx.wait();
-      alert(`Successfully transferred ${amount} USDC`);
+      const txResponse: ethers.TransactionResponse = await deFiCrowdFundingContract.invest(ethers.parseUnits(amount, 18));
+      await txResponse.wait();
+      alert(`Successfully transferred ${amount} USDC. Transaction hash: ${txResponse.hash}`);
     } catch (error) {
       console.error(error);
     }
@@ -72,7 +72,7 @@ const InvestmentComponent = () => {
       <button
         disabled={!userAddress}
         onClick={() =>
-          transferUSDC("10", "0x26291e64E41e02c5fb2c7c3eefDF36b3d0fA3BdF")
+          transferUSDC("10", "0x018269c7F7FE220A4Fb34e022a3aB71b43865d36")
         }
       >
         Invest 10 USDC

@@ -28,22 +28,6 @@ app.post('/deploy', async (req, res) => {
   }
 });
 
-// app.post('/deploy', (req, res) => {
-//   exec('npx hardhat run --network sepolia scripts/deploy.ts', (error, stdout, stderr) => {
-//       if (error) {
-//           console.error(`Error: ${error.message}`);
-//           return res.status(500).json({ message: `Error: ${error.message}` });
-//       }
-//       if (stderr) {
-//           console.error(`Stderr: ${stderr}`);
-//           return res.status(500).json({ message: `Stderr: ${stderr}` });
-//       }
-//       console.log(`Stdout: ${stdout}`);
-//       res.status(200).json({ message: 'Contract deployed', output: stdout });
-//   });
-// });
-
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
