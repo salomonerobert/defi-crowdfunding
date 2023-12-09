@@ -29,6 +29,7 @@ interface AutomationRegistrarInterface {
 // use the above link to get the value for the registrar parameter in constructor
 // https://docs.chain.link/resources/link-token-contracts?parent=automation
 // use above link to get the value for the link parameter in constructor
+// 0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5 - USDC token contract address
 contract DeFiCrowdFunding is AutomationCompatibleInterface {
     LinkTokenInterface public immutable i_link;
     AutomationRegistrarInterface public immutable i_registrar;
@@ -42,6 +43,7 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     mapping(address => uint256) public refunds;
     uint256 public totalInvestment;
     bool public minimumReached = false;
+    uint256 private _upKeepID = 0;
 
     constructor(
         uint256 _startDate,
@@ -53,10 +55,13 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         startDate = _startDate;
         endDate = _endDate;
         usdcToken = IERC20(_usdcTokenAddress);
+        i_link = link;
+        i_registrar = registrar;
     }
 
     function invest(uint256 amount) public {
-        require(block.timestamp < startDate, "Investment period has ended");
+        require(block.timestamp >= startDate, "Investment period has not started yet");
+        require(block.timestamp <= endDate, "Investment period has ended");
         usdcToken.transferFrom(msg.sender, address(this), amount);
         if (investments[msg.sender] == 0) {
             investors.push(msg.sender);
@@ -64,8 +69,6 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         investments[msg.sender] += amount;
         totalInvestment += amount;
     }
-
-    
 
     function refundInvestors() internal {
         // Iterate through investors and prepare refunds
@@ -92,23 +95,38 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         require(success, "Refund transfer failed");
     }
 
-
     // adminAddress just use your wallet address
     // REMEMBER to transfer LINK tokens to the deployed contract address before running this function e.g. 1.01 token
     // gasLimit = 500000
     // amount is in Link Tokens in wei. use 1000000000000000000
-    function registerAndPredictID(string calldata name, uint32 gasLimit, uint96 amount,address adminAddress) public {
+    function registerAndPredictID(
+        string calldata name,
+        uint32 gasLimit,
+        uint96 amount,
+        address adminAddress
+    ) public {
         // LINK must be approved for transfer - this can be done every time or once
         // with an infinite approval
-        if(_upKeepID!=0){
+        if (_upKeepID != 0) {
             return;
         }
         i_link.approve(address(i_registrar), amount);
         uint256 upkeepID = i_registrar.registerUpkeep(
-            RegistrationParams(name,'0x',address(this),gasLimit,adminAddress,0,'0x','0x','0x',amount)
-            );
+            RegistrationParams(
+                name,
+                "0x",
+                address(this),
+                gasLimit,
+                adminAddress,
+                0,
+                "0x",
+                "0x",
+                "0x",
+                amount
+            )
+        );
         if (upkeepID != 0) {
-            _upKeepID=upkeepID;
+            _upKeepID = upkeepID;
         } else {
             revert("auto-approve disabled");
         }

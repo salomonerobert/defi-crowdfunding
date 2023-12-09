@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as automation from "./automation";
+export * as shared from "./shared";

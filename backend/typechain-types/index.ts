@@ -14,9 +14,13 @@ export type { AutomationCompatible } from "./@chainlink/contracts/src/v0.8/autom
 export { AutomationCompatible__factory } from "./factories/@chainlink/contracts/src/v0.8/automation/AutomationCompatible__factory";
 export type { AutomationCompatibleInterface } from "./@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface";
 export { AutomationCompatibleInterface__factory } from "./factories/@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface__factory";
+export type { LinkTokenInterface } from "./@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface";
+export { LinkTokenInterface__factory } from "./factories/@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface__factory";
 export type { IERC20 } from "./@openzeppelin/contracts/token/ERC20/IERC20";
 export { IERC20__factory } from "./factories/@openzeppelin/contracts/token/ERC20/IERC20__factory";
-export type { DeFiCrowdFunding } from "./contracts/DeFiCrowdFunding";
-export { DeFiCrowdFunding__factory } from "./factories/contracts/DeFiCrowdFunding__factory";
+export type { AutomationRegistrarInterface } from "./contracts/DeFiCrowdFunding.sol/AutomationRegistrarInterface";
+export { AutomationRegistrarInterface__factory } from "./factories/contracts/DeFiCrowdFunding.sol/AutomationRegistrarInterface__factory";
+export type { DeFiCrowdFunding } from "./contracts/DeFiCrowdFunding.sol/DeFiCrowdFunding";
+export { DeFiCrowdFunding__factory } from "./factories/contracts/DeFiCrowdFunding.sol/DeFiCrowdFunding__factory";
 export type { Lock } from "./contracts/Lock";
 export { Lock__factory } from "./factories/contracts/Lock__factory";

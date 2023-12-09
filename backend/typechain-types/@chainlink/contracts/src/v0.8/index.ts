@@ -3,3 +3,5 @@
 /* eslint-disable */
 import type * as automation from "./automation";
 export type { automation };
+import type * as shared from "./shared";
+export type { shared };

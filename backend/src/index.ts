@@ -1,10 +1,8 @@
 import express from 'express';
 import { ethers } from 'hardhat';
-import * as hardhat from 'hardhat';
-import { exec } from 'child_process';
 
 const app = express();
-const port = 3000;
+const port = 3001;
 
 app.use(express.json());
 
@@ -14,9 +12,12 @@ app.get('/', (req, res) => {
 
 app.post('/deploy', async (req, res) => {
   try {
-    const { startDate, endDate, ownerAddress } = req.body.data;
+    const { startDate, endDate } = req.body.data;
+    const automationRegistrarAddress = '0xb0E49c5D0d05cbc241d68c05BC5BA1d1B7B72976';
+    const linkTokenAddress = '0x779877A7B0D9E8603169DdbD7836e478b4624789';
+    const usdcTokenAddress = '0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5';
 
-    const DeFiCrowdFunding = await ethers.deployContract('DeFiCrowdFunding', [startDate, endDate, ownerAddress])
+    const DeFiCrowdFunding = await ethers.deployContract('DeFiCrowdFunding', [startDate, endDate, usdcTokenAddress, linkTokenAddress, automationRegistrarAddress])
     await DeFiCrowdFunding.waitForDeployment();
 
     // Send response
