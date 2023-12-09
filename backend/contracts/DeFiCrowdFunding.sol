@@ -36,38 +36,126 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
 
     uint256 public startDate;
     uint256 public endDate;
-    uint256 public constant MINIMUM_INVESTMENT = 10000 * (10 ** 6);
+    uint256 public minimumInvestment;
+    // uint256 public constant MINIMUM_INVESTMENT = 10000 * (10 ** 18);
     IERC20 public usdcToken;
     mapping(address => uint256) public investments;
     address[] public investors;
+    address public projectTeamWalletAddress;
     mapping(address => uint256) public refunds;
-    uint256 public totalInvestment;
+    uint256 public investmentPool;
     bool public minimumReached = false;
+    bool public isVotingOpen = false;
     uint256 private _upKeepID = 0;
+    uint256 public projectTeamWithdrawalPool = 0;
+
+    //Voting parameters
+    mapping(uint256 => mapping(address => bool)) public votingStatus;
+    uint256 public passVotes = 0;
+    uint256 public failVotes = 0;
+    uint256 public currentVotingSession = 0;
+    uint256 public quorumPercentage;
 
     constructor(
         uint256 _startDate,
         uint256 _endDate,
+        uint256 _minimumInvestment,
+        uint256 _quorumPercentage,
+        address _projectTeamWalletAddress,
         address _usdcTokenAddress,
         LinkTokenInterface link,
         AutomationRegistrarInterface registrar
     ) {
         startDate = _startDate;
         endDate = _endDate;
+        minimumInvestment = _minimumInvestment;
+        quorumPercentage = _quorumPercentage;
+        projectTeamWalletAddress = _projectTeamWalletAddress;
         usdcToken = IERC20(_usdcTokenAddress);
         i_link = link;
         i_registrar = registrar;
     }
 
     function invest(uint256 amount) public {
-        require(block.timestamp >= startDate, "Investment period has not started yet");
+        require(
+            block.timestamp >= startDate,
+            "Investment period has not started yet"
+        );
         require(block.timestamp <= endDate, "Investment period has ended");
         usdcToken.transferFrom(msg.sender, address(this), amount);
         if (investments[msg.sender] == 0) {
             investors.push(msg.sender);
         }
         investments[msg.sender] += amount;
-        totalInvestment += amount;
+        investmentPool += amount;
+        if (investmentPool >= minimumInvestment) {
+            minimumReached = true;
+            projectTeamWithdrawalPool = investmentPool / 2; // if minimum funding is reached, project team is able to access half of the funds to begin work
+        }
+    }
+
+    function vote(bool pass) public {
+        require(isVotingOpen, "Voting is not open.");
+        require(investments[msg.sender] > 0, "Wallet address not recognised.");
+        require(
+            !votingStatus[currentVotingSession][msg.sender],
+            "Vote has already been recorded."
+        );
+
+        votingStatus[currentVotingSession][msg.sender] = true;
+        if (pass) {
+            passVotes += investments[msg.sender]; // Count votes based on investment
+        } else {
+            failVotes += investments[msg.sender]; // Count votes based on investment
+        }
+
+        uint256 totalVotes = passVotes + failVotes;
+        if (totalVotes >= (quorumPercentage * investmentPool) / 100) {
+            if (passVotes >= totalVotes / 2) {
+                // Voting passed, trigger milestone payment
+                projectTeamWithdrawalPool = investmentPool;
+                investmentPool -= projectTeamWithdrawalPool;
+                resetVoting(); // Reset voting after decision is made
+            } else if (failVotes > totalVotes / 2) {
+                // Voting failed, reset voting
+                resetVoting(); // Reset voting after decision is made
+            }
+        }
+    }
+
+    function projectTeamMilestoneUpdate() public {
+        require(
+            msg.sender == projectTeamWalletAddress,
+            "Not authorised to post milestones"
+        );
+
+        isVotingOpen = true;
+        //trigger ChainLink functions for sending notification to users to start voting
+    }
+
+    function withdrawFromProjectTeamWithdrawalPool(
+        uint256 withdrawalAmount
+    ) public {
+        require(
+            msg.sender == projectTeamWalletAddress,
+            "Not authorised to withdraw funds"
+        );
+        require(
+            withdrawalAmount <= projectTeamWithdrawalPool,
+            "Withdrawal amount exceeds available funds"
+        );
+
+        projectTeamWithdrawalPool -= withdrawalAmount;
+
+        bool success = usdcToken.transfer(msg.sender, withdrawalAmount);
+        require(success, "Withdrawal failed");
+    }
+
+    function resetVoting() private {
+        passVotes = 0;
+        failVotes = 0;
+        currentVotingSession += 1;
+        isVotingOpen = false;
     }
 
     function refundInvestors() internal {
@@ -77,7 +165,7 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
             address investor = investors[i];
             uint256 amount = investments[investor];
             refunds[investor] = amount;
-            totalInvestment -= amount;
+            investmentPool -= amount;
 
             // Resetting investment to 0
             investments[investor] = 0;
@@ -91,7 +179,8 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         // Reset the refund amount before transferring to prevent re-entrancy attacks
         refunds[msg.sender] = 0;
 
-        (bool success, ) = msg.sender.call{value: refundAmount}("");
+        // Transfer USDC tokens to the caller of the function
+        bool success = usdcToken.transfer(msg.sender, refundAmount);
         require(success, "Refund transfer failed");
     }
 
@@ -147,14 +236,11 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     }
 
     function performUpkeep(bytes calldata /* performData */) external override {
-        if (block.timestamp >= startDate && !minimumReached) {
-            if (totalInvestment < MINIMUM_INVESTMENT) {
-                // Refund process
-                refundInvestors();
-            } else {
-                minimumReached = true;
-            }
+        if (block.timestamp >= endDate && !minimumReached) {
+            refundInvestors();
         }
-        // Additional logic for end date
+        if (minimumReached) {
+            //call notification Chainlink Function
+        }
     }
 }
