@@ -1,13 +1,20 @@
 import './App.css';
-import InvestmentComponent from '../src/components/InvestmentComponent.tsx';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProjectTeamPage from './pages/ProjectTeamPage'
+import ProjectBackerPage from './pages/ProjectBackerPage'
+import LandingPage from './pages/LandingPage'
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
 
   return (
-    <div className="App">
-        Hello
-        <InvestmentComponent/>
-    </div>
+    <Router>
+      <Routes>
+        <Route path='/' element={<LandingPage/>}/>
+        <Route path="/project-team" element={<ProjectTeamPage />} />
+        <Route path="/project-backer" element={<ProjectBackerPage />} />
+      </Routes>
+    </Router>
   );
 }
 

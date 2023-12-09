@@ -2,28 +2,26 @@ import React, { useState } from "react";
 import { ethers } from "ethers";
 import { deFiCrowdFundingContractABI, genericERC20ABI } from "../constants";
 
-const InvestmentComponent = () => {
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  const [userAddress, setUserAddress] = useState<string | null>(null);
+interface InvestmentComponentProps {
+  provider: ethers.BrowserProvider;
+  userAddress: string | undefined;
+  projectContractAddress: string | undefined;
+}
+
+interface ProgressMessage {
+  message: string;
+  type: string;
+}
+
+const InvestmentComponent = ({
+  provider,
+  userAddress,
+  projectContractAddress
+}: InvestmentComponentProps) => {
   const usdcTokenAddress = "0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5";
+  const [investmentAmount, setInvestmentAmount] = useState<string | undefined>(undefined)
+  const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>([]);
 
-  // Connect to Metamask
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
-        setProvider(provider);
-        setUserAddress(accounts[0]);
-      } catch (error) {
-        console.error(error);
-      }
-    } else {
-      alert("Metamask is not installed");
-    }
-  };
-
-  // Transfer USDC (simplified example)
   const transferUSDC = async (
     amount: string,
     deFiCrowdFundingContractAddress: string
@@ -45,39 +43,45 @@ const InvestmentComponent = () => {
       genericERC20ABI,
       signer
     );
-    console.log(`approving transaction for USDC ${ethers.parseUnits(amount, 18)}`)
-    const approveTx = await usdcTokenContract.approve(
-      deFiCrowdFundingContractAddress,
-      ethers.parseUnits(amount, 18)
-    );
+    setProgressMessages(prev => [...prev, { message: `Approving transaction for USDC ${amount}`, type: 'info' }])
+    const approveTx = await usdcTokenContract
+      .approve(deFiCrowdFundingContractAddress, ethers.parseUnits(amount, 18))
+      .catch((err) => console.error(err));
     await approveTx.wait();
 
-    const allowance = await usdcTokenContract.allowance(userAddress, deFiCrowdFundingContractAddress);
-    console.log("Allowance: ", ethers.formatUnits(allowance, 18));
-
-
+    setProgressMessages(prev => [...prev, { message: `Sending transaction to the blockchain`, type: 'info' }])
     try {
-      const txResponse: ethers.TransactionResponse = await deFiCrowdFundingContract.invest(ethers.parseUnits(amount, 18));
+      const txResponse: ethers.TransactionResponse =
+        await deFiCrowdFundingContract.invest(ethers.parseUnits(amount, 18));
       await txResponse.wait();
-      alert(`Successfully transferred ${amount} USDC. Transaction hash: ${txResponse.hash}`);
+      setProgressMessages(prev => [...prev, { message: `Successfully transferred ${amount} USDC. Transaction hash: ${txResponse.hash}`, type: 'success' }])
     } catch (error) {
       console.error(error);
     }
   };
 
+  function handleFundProject(e) {
+    e.preventDefault()
+    transferUSDC(investmentAmount, projectContractAddress);
+  }
+
   // Render Component
   return (
-    <div>
-      <button onClick={connectWallet}>Connect Wallet</button>
-      <button
-        disabled={!userAddress}
-        onClick={() =>
-          transferUSDC("10", "0x018269c7F7FE220A4Fb34e022a3aB71b43865d36")
-        }
-      >
-        Invest 10 USDC
-      </button>
-      {/* Additional UI for displaying milestones, voting results, etc. */}
+    <div className="text-center mt-3">
+      <form className="mb-3" onSubmit={handleFundProject}>
+        <div className="mb-3">
+          <label htmlFor="investmentAmount" className="form-label">
+            Investing Amount in USDC
+          </label>
+          <input type="number" id="investmentAmount" value={investmentAmount} onChange={(e) => setInvestmentAmount(e.target.value)} />
+        </div>
+        <button type="submit" className="btn btn-primary">
+          Submit
+        </button>
+      </form>
+      {progressMessages.length > 0 && progressMessages.map((msg, idx) => (
+        <div key={idx} className={`alert alert-${msg.type} overflow-auto`}>{msg.message}</div>
+      ))}
     </div>
   );
 };
