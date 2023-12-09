@@ -85,14 +85,28 @@ router.post(
       const linkTokenAddress = "0x779877A7B0D9E8603169DdbD7836e478b4624789";
       const usdcTokenAddress = "0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5";
 
+      console.log((project.startDate.getTime())/1000);
+
       const DeFiCrowdFunding = await ethers.deployContract("DeFiCrowdFunding", [
-        project.startDate,
-        project.endDate,
+        (project.startDate.getTime())/1000,
+        (project.endDate.getTime())/1000,
+        project.minInvestment,
+        project.quorom,
+        project.owners[0],
         usdcTokenAddress,
         linkTokenAddress,
         automationRegistrarAddress,
       ]);
       await DeFiCrowdFunding.waitForDeployment();
+
+      console.log('deployment complete')
+
+      project.status = 'DEPLOYED';
+      project.contractAddress = DeFiCrowdFunding.target as string;
+      await projectModel
+        .findByIdAndUpdate(project.id, { $set: { ...project } })
+        .lean()
+        .then(toProject)
 
       // Send response
       return res.status(200).json({

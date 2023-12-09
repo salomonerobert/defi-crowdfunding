@@ -19,7 +19,7 @@ const InvestmentComponent = ({
   projectContractAddress
 }: InvestmentComponentProps) => {
   const usdcTokenAddress = "0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5";
-  const [investmentAmount, setInvestmentAmount] = useState<string | undefined>(undefined)
+  const [investmentAmount, setInvestmentAmount] = useState<string | undefined>("")
   const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>([]);
 
   const transferUSDC = async (

@@ -56,6 +56,10 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     uint256 public currentVotingSession = 0;
     uint256 public quorumPercentage;
 
+    //Upkeep control parameters
+    bool isInitialDisbursementToProjectTeamComplete = false;
+    bool isSuccessfulFundraiseNotificationSent = false;
+
     constructor(
         uint256 _startDate,
         uint256 _endDate,
@@ -90,7 +94,6 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         investmentPool += amount;
         if (investmentPool >= minimumInvestment) {
             minimumReached = true;
-            projectTeamWithdrawalPool = investmentPool / 2; // if minimum funding is reached, project team is able to access half of the funds to begin work
         }
     }
 
@@ -113,10 +116,10 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         if (totalVotes >= (quorumPercentage * investmentPool) / 100) {
             if (passVotes >= totalVotes / 2) {
                 // Voting passed, trigger milestone payment
-                projectTeamWithdrawalPool = investmentPool;
-                investmentPool -= projectTeamWithdrawalPool;
+                projectTeamWithdrawalPool += investmentPool;
+                investmentPool = 0;
                 resetVoting(); // Reset voting after decision is made
-            } else if (failVotes > totalVotes / 2) {
+            } else {
                 // Voting failed, reset voting
                 resetVoting(); // Reset voting after decision is made
             }
@@ -229,18 +232,26 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         override
         returns (bool upkeepNeeded, bytes memory performData)
     {
-        bool isStartDate = block.timestamp >= startDate && !minimumReached;
-        bool isEndDate = block.timestamp >= endDate;
-        upkeepNeeded = isStartDate || isEndDate;
+        bool refundNeeded = block.timestamp >= endDate && !minimumReached && investmentPool != 0;
+        bool initialTransferPending = block.timestamp >= endDate && minimumReached && !isInitialDisbursementToProjectTeamComplete;
+        bool successfulFundraiseNotificationPending = minimumReached && block.timestamp >= startDate && !isSuccessfulFundraiseNotificationSent;
+        upkeepNeeded = refundNeeded || initialTransferPending || successfulFundraiseNotificationPending;
         performData = "";
     }
 
     function performUpkeep(bytes calldata /* performData */) external override {
-        if (block.timestamp >= endDate && !minimumReached) {
+        if (block.timestamp >= endDate && !minimumReached && investmentPool != 0) {
             refundInvestors();
         }
-        if (minimumReached) {
+        if (block.timestamp >= endDate && minimumReached && !isInitialDisbursementToProjectTeamComplete) {
             //call notification Chainlink Function
+            projectTeamWithdrawalPool = investmentPool / 2;
+            investmentPool -= projectTeamWithdrawalPool;
+            isInitialDisbursementToProjectTeamComplete = true;
+        }
+        if (minimumReached && block.timestamp >= startDate && !isSuccessfulFundraiseNotificationSent) {
+            // trigger CL Functions to send notification
+            isSuccessfulFundraiseNotificationSent = true;
         }
     }
 }
