@@ -35,7 +35,6 @@ app.use('/contract',contract);
 app.use('/user',user);
 app.use('/project',project);
 
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
