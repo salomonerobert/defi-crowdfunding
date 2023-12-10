@@ -18,6 +18,8 @@ interface BlockchainProjectData {
   isVotingOpen: boolean;
   currentVotingSession: number;
   projectTeamWithdrawalPool: number;
+  isInitialDisbursementToProjectTeamComplete: boolean;
+  isLinkFunded: boolean;
 }
 
 function updateLifecycleStatusBasedOnBlockchainData(
@@ -25,36 +27,38 @@ function updateLifecycleStatusBasedOnBlockchainData(
   blockchainProjectData: BlockchainProjectData,
   project: Project
 ) {
-  if (blockchainProjectData.totalInvestment >= project.minInvestment) {
+  if (blockchainProjectData.isLinkFunded) {
     lifecycleEvents[1].status = "completed";
-    lifecycleEvents[2].status = "in_progress";
-    lifecycleEvents[3].status = "in_progress";
+  }
+  if (blockchainProjectData.totalInvestment >= project.minInvestment) {
+    lifecycleEvents[2].status = "completed";
+    lifecycleEvents[4].status = "in_progress";
   }
   if (blockchainProjectData.projectTeamWithdrawalPool > 0) {
-    lifecycleEvents[2].status = "in_progress";
-  } else if (lifecycleEvents[1].status === "completed") {
-    lifecycleEvents[2].status = "completed";
+    lifecycleEvents[3].status = "in_progress";
+  } else if (blockchainProjectData.isInitialDisbursementToProjectTeamComplete) {
+    lifecycleEvents[3].status = "completed";
   }
   if (blockchainProjectData.isVotingOpen) {
-    lifecycleEvents[3].status = "completed";
-    lifecycleEvents[4].status = "in_progress";
+    lifecycleEvents[4].status = "completed";
+    lifecycleEvents[5].status = "in_progress";
   }
   if (
     !blockchainProjectData.isVotingOpen &&
     blockchainProjectData.currentVotingSession > 0
   ) {
-    lifecycleEvents[4].status = "completed";
-    lifecycleEvents[5].status = "in_progress";
+    lifecycleEvents[5].status = "completed";
+    lifecycleEvents[6].status = "in_progress";
   }
   if (
     blockchainProjectData.currentVotingSession > 0 &&
     blockchainProjectData.totalInvestment === 0 &&
     blockchainProjectData.projectTeamWithdrawalPool === 0
   ) {
-    lifecycleEvents[5].status = "completed";
     lifecycleEvents[6].status = "completed";
+    lifecycleEvents[7].status = "completed";
   }
-  
+
   return lifecycleEvents;
 }
 
@@ -63,6 +67,10 @@ const ContractWorkflow = ({ project }: { project: Project }) => {
     {
       status: "completed",
       description: "Contract Creation",
+    },
+    {
+      status: "in_progress",
+      description: "Fund LINK",
     },
     {
       status: "in_progress",
@@ -101,6 +109,8 @@ const ContractWorkflow = ({ project }: { project: Project }) => {
       isVotingOpen: false,
       currentVotingSession: 0,
       projectTeamWithdrawalPool: 0,
+      isInitialDisbursementToProjectTeamComplete: false,
+      isLinkFunded: false,
     });
 
   const [lifecycleEvents, setLifecycleEvents] = useState<LifecycleEvent[]>(
@@ -139,6 +149,10 @@ const ContractWorkflow = ({ project }: { project: Project }) => {
       const projectTeamWithdrawalPool = await contract[
         "projectTeamWithdrawalPool"
       ]();
+      const isInitialDisbursementToProjectTeamComplete = await contract[
+        "isInitialDisbursementToProjectTeamComplete"
+      ]();
+      const isLinkFunded = await contract["isLinkFunded"]();
       return {
         totalInvestment: Number(ethers.formatUnits(totalInvestment, 18)),
         isVotingOpen,
@@ -148,6 +162,8 @@ const ContractWorkflow = ({ project }: { project: Project }) => {
         projectTeamWithdrawalPool: Number(
           ethers.formatUnits(projectTeamWithdrawalPool, 18)
         ),
+        isInitialDisbursementToProjectTeamComplete,
+        isLinkFunded,
       };
     } catch (error) {
       console.error(`Error fetching variables: `, error);

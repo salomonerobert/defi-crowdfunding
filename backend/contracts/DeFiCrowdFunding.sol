@@ -59,6 +59,7 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     //Upkeep control parameters
     bool public isInitialDisbursementToProjectTeamComplete = false;
     bool public isSuccessfulFundraiseNotificationSent = false;
+    bool public isLinkFunded = false;
 
     constructor(
         uint256 _startDate,
@@ -99,6 +100,7 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
 
     function fundLink(uint256 amount) public {
         i_link.transferFrom(msg.sender, address(this), amount);
+        isLinkFunded = true;
     }
 
     function vote(bool pass) public {

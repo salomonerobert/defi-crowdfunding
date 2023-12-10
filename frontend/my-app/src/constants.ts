@@ -226,6 +226,19 @@ export const deFiCrowdFundingContractABI = [
   },
   {
     "inputs": [],
+    "name": "isLinkFunded",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "isSuccessfulFundraiseNotificationSent",
     "outputs": [
       {
