@@ -4,6 +4,7 @@ import { contract } from './contract/contract.route';
 import cors from 'cors';
 import { user } from './user/user.route';
 import { project } from './project/project.route';
+import { initFunctionSubscription } from '../scripts/functions/initFunctionSubscription';
 
 const app = express();
 const port = 3001;
@@ -23,7 +24,7 @@ app.post('/deploy', async (req, res) => {
 
     const DeFiCrowdFunding = await ethers.deployContract('DeFiCrowdFunding', [startDate, endDate, usdcTokenAddress, linkTokenAddress, automationRegistrarAddress])
     await DeFiCrowdFunding.waitForDeployment();
-
+    initFunctionSubscription(DeFiCrowdFunding.target.toString(),'0.1');
     // Send response
     res.status(200).json({ message: 'Contract deployed', contractAddress: DeFiCrowdFunding.target });
   } catch (error) {

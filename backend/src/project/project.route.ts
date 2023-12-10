@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { ethers } from "hardhat";
 import { Project, projectModel, toProject } from "../schemas/project.schema";
 import { toUser, userModel } from "../schemas/user.schema";
-import { initFunctionSubscription } from "../functions/initFunctionSubscription";
+import { initFunctionSubscription } from "../../scripts/functions/initFunctionSubscription";
 
 const router = Router();
 

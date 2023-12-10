@@ -50,4 +50,3 @@ export const toProject = (doc: any): Project | null => {
   };
 };
 export const projectModel = mongooseConnection.model("project", project);
-console.log(projectModel);
