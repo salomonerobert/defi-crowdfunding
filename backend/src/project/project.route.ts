@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { ethers } from "hardhat";
 import { Project, projectModel, toProject } from "../schemas/project.schema";
 import { toUser, userModel } from "../schemas/user.schema";
+import { initFunctionSubscription } from "../functions/initFunctionSubscription";
 
 const router = Router();
 
@@ -103,6 +104,8 @@ router.post(
 
       project.status = 'DEPLOYED';
       project.contractAddress = DeFiCrowdFunding.target as string;
+      initFunctionSubscription(project.contractAddress,'0.1');
+
       await projectModel
         .findByIdAndUpdate(project.id, { $set: { ...project } })
         .lean()
