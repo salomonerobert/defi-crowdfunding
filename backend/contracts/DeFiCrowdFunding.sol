@@ -34,6 +34,7 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     LinkTokenInterface public immutable i_link;
     AutomationRegistrarInterface public immutable i_registrar;
 
+    address private owner;
     uint256 public startDate;
     uint256 public endDate;
     uint256 public minimumInvestment;
@@ -56,10 +57,11 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     uint256 public currentVotingSession = 0;
     uint256 public quorumPercentage;
 
-    //Upkeep control parameters
+    //Upkeep & Functions control parameters
     bool public isInitialDisbursementToProjectTeamComplete = false;
     bool public isSuccessfulFundraiseNotificationSent = false;
     bool public isLinkFunded = false;
+    uint64 public subscriptionId;
 
     constructor(
         uint256 _startDate,
@@ -79,6 +81,12 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         usdcToken = IERC20(_usdcTokenAddress);
         i_link = link;
         i_registrar = registrar;
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Caller is not the owner");
+        _;
     }
 
     function invest(uint256 amount) public {
@@ -228,6 +236,10 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         } else {
             revert("auto-approve disabled");
         }
+    }
+
+    function registerCLFunction(uint64 _subscriptionId) external onlyOwner {
+        subscriptionId = _subscriptionId;
     }
 
     function checkUpkeep(
