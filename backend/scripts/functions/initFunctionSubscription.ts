@@ -6,7 +6,7 @@ import { networks } from "./network";
 const functionsRouterAddress = networks.ethereumSepolia.functionsRouter;
 const linkTokenAddress = networks.ethereumSepolia.linkToken;
 
-export const initFunctionSubscription=async(contractAddress:string,linkAmount:string)=>{
+export const initFunctionSubscription=async(contractAddress:string,linkAmount:string) : Promise<number>=>{
     console.log('chainlink function subscribing to contract')
     const subscriptionManager=new SubscriptionManager({
         signer,
@@ -28,4 +28,5 @@ export const initFunctionSubscription=async(contractAddress:string,linkAmount:st
         juelsAmount
     });
     console.log('chainlink function subscribed to contract')
+    return subscriptionId;
 }
