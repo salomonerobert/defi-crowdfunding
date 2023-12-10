@@ -297,7 +297,7 @@ function ProjectTeamPage() {
         <div
           className="modal-dialog modal-dialog-centered"
           role="document"
-          style={{ minWidth: "25vw", minHeight: "25vh" }}
+          style={{ minWidth: "50vw", minHeight: "25vh" }}
         >
           <div className="modal-content">
             <div className="modal-header">
