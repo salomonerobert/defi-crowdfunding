@@ -1,30 +1,47 @@
 import InvestmentComponent from "../components/InvestmentComponent";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
+import { Project } from "../../../../backend/src/schemas/project.schema";
+import axios from "axios";
+
+export interface ProgressMessage {
+  message: string;
+  type: string;
+}
 
 function ProjectBackerPage() {
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [userAddress, setUserAddress] = useState<string | null>(null);
-  const [selectedProjectAddress, setSelectedProjectAddress] = useState<string | undefined>(undefined);
+  const [selectedProjectAddress, setSelectedProjectAddress] = useState<
+    string | undefined
+  >(undefined);
+  const [activeProjects, setActiveProjects] = useState<Project[]>([]);
+  const [fundedProjects, setFundedProjects] = useState<Project[]>([]);
+  const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>(
+    []
+  );
 
-  const dummyData = [
-    {
-      title: "Project A",
-      contractAddress: "0x018269c7F7FE220A4Fb34e022a3aB71b43865d36",
-      startDate: "2023-01-01",
-      endDate: "2023-06-01",
-      url: "http://example.com/a",
-      action: "View",
-    },
-    {
-      title: "Project B",
-      contractAddress: "0xgdgsg64536wdfjnd4506sfhht454",
-      startDate: "2023-02-01",
-      endDate: "2023-07-01",
-      url: "http://example.com/b",
-      action: "View",
-    },
-  ];
+  useEffect(() => {
+    axios
+      .get(`http://localhost:3001/project/all`)
+      .then((res) => {
+        if (res.status === 200) {
+          setActiveProjects(res.data.projects.reverse());
+        }
+      })
+      .catch((err) => console.error(err));
+
+    if (userAddress) {
+      axios
+        .get(`http://localhost:3001/project/invested/${userAddress}`)
+        .then((res) => {
+          if (res.status === 200) {
+            setFundedProjects(res.data.projects.reverse());
+          }
+        })
+        .catch((err) => console.error(err));
+    }
+  }, [userAddress]);
 
   // Connect to Metamask
   const connectWallet = async () => {
@@ -62,36 +79,43 @@ function ProjectBackerPage() {
               <th>Contract Address</th>
               <th>Fundraising Start Date</th>
               <th>Fundraising End Date</th>
-              <th>Project Website URL</th>
-              <th>Action</th>
+              <th>Fundraising Target</th>
+              <th>Quorum</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {dummyData.map((item, index) => (
-              <tr key={index}>
-                <td>{item.title}</td>
+            {activeProjects.map((item) => (
+              <tr key={item?.id}>
+                <td>{item?.name}</td>
                 <td>
                   <a
                     target="_blank"
                     rel="noopener noreferrer"
-                    href={`https://sepolia.etherscan.io/address/${item.contractAddress}`}
+                    href={`https://sepolia.etherscan.io/address/${item?.contractAddress}`}
                   >
-                    {item.contractAddress}
+                    {item?.contractAddress ?? "Pending contract creation"}
                   </a>
                 </td>
-                <td>{item.startDate}</td>
-                <td>{item.endDate}</td>
-                <td>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    {item.url}
-                  </a>
+                <td>{item?.startDate?.toString()}</td>
+                <td>{item?.endDate?.toString()}</td>
+                <td>USDC {item?.minInvestment}</td>
+                <td>{item?.quorom}</td>
+                <td
+                  className={`text-${
+                    item.status === "UNSTARTED" ? "info" : "success"
+                  }`}
+                >
+                  {item?.status}
                 </td>
                 <td>
                   <button
                     className="btn btn-primary"
                     data-bs-toggle="modal"
                     data-bs-target="#investmentModal"
-                    onClick={() => setSelectedProjectAddress(item.contractAddress)}
+                    onClick={() =>
+                      setSelectedProjectAddress(item.contractAddress)
+                    }
                   >
                     View
                   </button>
@@ -99,8 +123,10 @@ function ProjectBackerPage() {
               </tr>
             ))}
           </tbody>
-          {dummyData.length === 0 && (
-            <div className="alert alert-warning">No projects seeking funding at the moment.</div>
+          {activeProjects.length === 0 && (
+            <div className="alert alert-warning">
+              No projects seeking funding as of now.
+            </div>
           )}
         </table>
       </div>
@@ -113,45 +139,56 @@ function ProjectBackerPage() {
               <th>Contract Address</th>
               <th>Fundraising Start Date</th>
               <th>Fundraising End Date</th>
-              <th>Project Website URL</th>
-              <th>Action</th>
+              <th>Fundraising Target</th>
+              <th>Quorum</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {dummyData.map((item, index) => (
-              <tr key={index}>
-                <td>{item.title}</td>
+            {fundedProjects.map((item) => (
+              <tr key={item?.id}>
+                <td>{item?.name}</td>
                 <td>
                   <a
                     target="_blank"
                     rel="noopener noreferrer"
-                    href={`https://sepolia.etherscan.io/address/${item.contractAddress}`}
+                    href={`https://sepolia.etherscan.io/address/${item?.contractAddress}`}
                   >
-                    {item.contractAddress}
+                    {item?.contractAddress ?? "Pending contract creation"}
                   </a>
                 </td>
-                <td>{item.startDate}</td>
-                <td>{item.endDate}</td>
-                <td>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    {item.url}
-                  </a>
+                <td>{item?.startDate?.toString()}</td>
+                <td>{item?.endDate?.toString()}</td>
+                <td>USDC {item?.minInvestment}</td>
+                <td>{item?.quorom}</td>
+                <td
+                  className={`text-${
+                    item.status === "UNSTARTED" ? "info" : "success"
+                  }`}
+                >
+                  {item?.status}
                 </td>
                 <td>
-                  <button className="btn btn-primary">{item.action}</button>
+                  <button onClick={() => {}}>View</button>
                 </td>
               </tr>
             ))}
           </tbody>
-          {dummyData.length === 0 && (
-            <div className="alert alert-warning">You do not have any funded projects yet.</div>
+          {fundedProjects.length === 0 && !userAddress && (
+            <div className="alert alert-warning">
+              Login to Metmask to see your funded projects.
+            </div>
+          )}
+          {fundedProjects.length === 0 && userAddress && (
+            <div className="alert alert-warning">
+              You have not funded any projects yet.
+            </div>
           )}
         </table>
       </div>
       <div
         className="modal fade"
         id="investmentModal"
-        // tabIndex="-1"
         role="dialog"
         aria-labelledby="investmentModalLabel"
         aria-hidden="true"
@@ -171,26 +208,28 @@ function ProjectBackerPage() {
                 className="btn-close"
                 data-bs-dismiss="modal"
                 aria-label="Close"
-                onClick={() => setSelectedProjectAddress(undefined)}
+                onClick={() => {
+                    setSelectedProjectAddress(undefined);
+                    setProgressMessages([]);
+                }}
               ></button>
             </div>
             <div className="modal-body">
-              {/* <form onSubmit={handleFundProject}>
-                <div className="mb-3">
-                  <label htmlFor="investmentAmount" className="form-label">
-                    Investing Amount in USDC
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="investmentAmount"
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary">
-                  Submit
-                </button>
-              </form> */}
-              <InvestmentComponent provider={provider} userAddress={userAddress} projectContractAddress={selectedProjectAddress} />
+              <InvestmentComponent
+                provider={provider}
+                userAddress={userAddress}
+                projectContractAddress={selectedProjectAddress}
+                setProgressMessages={setProgressMessages}
+              />
+              {progressMessages.length > 0 &&
+                progressMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`alert alert-${msg.type} overflow-auto`}
+                  >
+                    {msg.message}
+                  </div>
+                ))}
             </div>
           </div>
         </div>

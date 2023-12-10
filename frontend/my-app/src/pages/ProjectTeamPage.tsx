@@ -1,18 +1,24 @@
-import InvestmentComponent from "../components/InvestmentComponent";
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { Project } from "../../../../backend/src/schemas/project.schema";
 import axios from "axios";
-import { IoArrowBackCircleOutline } from "react-icons/io5";
+import ContractWorkflow from "../components/ContractWorkflowComponent";
 
 function ProjectTeamPage() {
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [userAddress, setUserAddress] = useState<string | null>("");
-  const [selectedProjectAddress, setSelectedProjectAddress] = useState<
-    string | undefined
-  >(undefined);
-  const [projectDetails, setProjectDetails] = useState<Project | undefined>();
+  const [projectDetails, setProjectDetails] = useState<Project | undefined>({
+    name: "",
+    owners: [],
+    startDate: new Date(),
+    endDate: new Date(),
+    minInvestment: 0,
+    quorom: 0,
+    status: undefined,
+  });
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     if (!userAddress) {
@@ -28,8 +34,8 @@ function ProjectTeamPage() {
     axios
       .get(`http://localhost:3001/project/owned/${userAddress}`)
       .then((res) => {
-        if (res.status == 200) {
-          setActiveProjects(res.data.projects);
+        if (res.status === 200) {
+          setActiveProjects(res.data.projects.reverse());
         }
       });
   }
@@ -40,7 +46,6 @@ function ProjectTeamPage() {
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await provider.send("eth_requestAccounts", []);
-        setProvider(provider);
         setUserAddress(accounts[0]);
       } catch (error) {
         console.error(error);
@@ -82,16 +87,19 @@ function ProjectTeamPage() {
 
   function handleDeployContract(id: string) {
     if (id) {
-      axios.post(`http://localhost:3001/project/deploy`, {
-        userId: userAddress,
-        projectId: id,
-      })
-      .then(res => {
-        if (res.status === 200) {
-            window.alert(`Contract successfully deployed! Contract address: ${res.data.contractAddress}`);
+      axios
+        .post(`http://localhost:3001/project/deploy`, {
+          userId: userAddress,
+          projectId: id,
+        })
+        .then((res) => {
+          if (res.status === 200) {
+            window.alert(
+              `Contract successfully deployed! Contract address: ${res.data.contractAddress}`
+            );
             fetchAllActiveProjects();
-        }
-      })
+          }
+        });
     }
   }
 
@@ -258,7 +266,13 @@ function ProjectTeamPage() {
                 <td>
                   <button
                     className="btn btn-primary"
-                    onClick={() => handleDeployContract(item?.id)}
+                    data-bs-toggle="modal"
+                    data-bs-target="#investmentModal"
+                    onClick={() =>
+                      item?.status === "UNSTARTED"
+                        ? handleDeployContract(item?.id)
+                        : setSelectedProject(item)
+                    }
                   >
                     {item?.status !== "DEPLOYED" ? "DEPLOY" : "VIEW"}
                   </button>
@@ -276,7 +290,6 @@ function ProjectTeamPage() {
       <div
         className="modal fade"
         id="investmentModal"
-        // tabIndex="-1"
         role="dialog"
         aria-labelledby="investmentModalLabel"
         aria-hidden="true"
@@ -296,15 +309,13 @@ function ProjectTeamPage() {
                 className="btn-close"
                 data-bs-dismiss="modal"
                 aria-label="Close"
-                onClick={() => setSelectedProjectAddress(undefined)}
+                onClick={() => setSelectedProject(undefined)}
               ></button>
             </div>
             <div className="modal-body">
-              <InvestmentComponent
-                provider={provider}
-                userAddress={userAddress}
-                projectContractAddress={selectedProjectAddress}
-              />
+              {selectedProject && (
+                <ContractWorkflow project={selectedProject} />
+              )}
             </div>
           </div>
         </div>

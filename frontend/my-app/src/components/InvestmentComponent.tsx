@@ -1,26 +1,23 @@
-import React, { useState } from "react";
+import React, { SetStateAction, useState } from "react";
 import { ethers } from "ethers";
 import { deFiCrowdFundingContractABI, genericERC20ABI } from "../constants";
+import { ProgressMessage } from "pages/ProjectBackerPage";
 
 interface InvestmentComponentProps {
   provider: ethers.BrowserProvider;
   userAddress: string | undefined;
   projectContractAddress: string | undefined;
-}
-
-interface ProgressMessage {
-  message: string;
-  type: string;
+  setProgressMessages: React.Dispatch<SetStateAction<ProgressMessage[]>>
 }
 
 const InvestmentComponent = ({
   provider,
   userAddress,
-  projectContractAddress
+  projectContractAddress,
+  setProgressMessages
 }: InvestmentComponentProps) => {
   const usdcTokenAddress = "0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5";
   const [investmentAmount, setInvestmentAmount] = useState<string | undefined>("")
-  const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>([]);
 
   const transferUSDC = async (
     amount: string,
@@ -56,13 +53,14 @@ const InvestmentComponent = ({
       await txResponse.wait();
       setProgressMessages(prev => [...prev, { message: `Successfully transferred ${amount} USDC. Transaction hash: ${txResponse.hash}`, type: 'success' }])
     } catch (error) {
+      setProgressMessages(prev => [...prev, { message: `Error occurred while transferring ${amount} USDC. ${error.message}`, type: 'danger' }])
       console.error(error);
     }
   };
 
   function handleFundProject(e) {
     e.preventDefault()
-    transferUSDC(investmentAmount, projectContractAddress);
+    transferUSDC(investmentAmount, projectContractAddress).finally(() => setInvestmentAmount(""));
   }
 
   // Render Component
@@ -79,9 +77,6 @@ const InvestmentComponent = ({
           Submit
         </button>
       </form>
-      {progressMessages.length > 0 && progressMessages.map((msg, idx) => (
-        <div key={idx} className={`alert alert-${msg.type} overflow-auto`}>{msg.message}</div>
-      ))}
     </div>
   );
 };
