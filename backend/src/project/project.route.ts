@@ -104,7 +104,7 @@ router.post(
 
       project.status = 'DEPLOYED';
       project.contractAddress = DeFiCrowdFunding.target as string;
-      const subscriptionId = await initFunctionSubscription(project.contractAddress,'0.1');
+      const subscriptionId = await initFunctionSubscription(project.contractAddress,'4');
 
       const registerTx = await DeFiCrowdFunding.registerCLFunction(subscriptionId);
       await registerTx.wait();

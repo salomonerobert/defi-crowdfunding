@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb';
 const router = Router();
 
 router.post('/updates/:id',async(req:Request,res:Response,next:NextFunction)=>{
-    console.log('this is the contract updates');
+    console.log('updating contract status');
     const contractAddress=req.params.id;
     const status=req.body.status;
     const project=await projectModel.findOneAndUpdate({contractAddress},{$set:{status}},{new:true}).lean().then(toProject);
@@ -21,6 +21,7 @@ router.post('/updates/:id',async(req:Request,res:Response,next:NextFunction)=>{
         }
         await userModel.updateMany({projects:project.id},{$push:{notifications}}).exec();
         await userModel.updateMany({walletAddress:project.owners},{$push:{notifications}}).exec();
+        
         return res.send({message:'ok'});
     }
     else{
@@ -56,6 +57,20 @@ router.post('/voteOutcome/:id',async(req:Request,res:Response,next:NextFunction)
             notifications.message=`Voting to disperse funds has FAILED for project: ${project.name}`;
         }
         await userModel.updateMany({projects:project.id},{$push:{notifications}}).exec();
+        await userModel.updateMany({walletAddress:project.owners},{$push:{notifications}}).exec();
+        return res.send({message:'ok'});
+    }
+    else{
+        return res.status(500).send({message:'unable to find project'});
+    }
+})
+
+router.get('/notifyTransferPending/:id',async(req:Request,res:Response,next:NextFunction)=>{
+    console.log('notifying project team of transfer of funds pending');
+    const contractAddress=req.params.id;
+    const project=await projectModel.findOne({contractAddress}).lean().then(toProject);
+    if( project){
+        const notifications={message:`Transfer of funds for project : ${project.name} is pending`,status:'UNREAD'};
         await userModel.updateMany({walletAddress:project.owners},{$push:{notifications}}).exec();
         return res.send({message:'ok'});
     }

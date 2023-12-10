@@ -14,7 +14,7 @@ export type Project = {
   stages?: number;
   currentStage?: number;
   name: string;
-  status: "UNSTARTED" | "DEPLOYED" | "UNFUNDED" | "FUNDED" | "ENDED";
+  status: "UNSTARTED" | "DEPLOYED" | "REFUNDED" | "FUNDED" | "ENDED";
 };
 
 const project = new Schema<Project>({

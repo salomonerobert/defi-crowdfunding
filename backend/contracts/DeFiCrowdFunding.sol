@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/FunctionsClient.sol";
+import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/libraries/FunctionsRequest.sol";
 
 // This is for the self registration for automation
 struct RegistrationParams {
@@ -30,7 +32,9 @@ interface AutomationRegistrarInterface {
 // https://docs.chain.link/resources/link-token-contracts?parent=automation
 // use above link to get the value for the link parameter in constructor
 // 0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5 - USDC token contract address
-contract DeFiCrowdFunding is AutomationCompatibleInterface {
+contract DeFiCrowdFunding is AutomationCompatibleInterface, FunctionsClient  {
+    using FunctionsRequest for FunctionsRequest.Request;
+
     LinkTokenInterface public immutable i_link;
     AutomationRegistrarInterface public immutable i_registrar;
 
@@ -63,6 +67,13 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     bool public isLinkFunded = false;
     uint64 public subscriptionId;
 
+    // DONID for ethereum sepolia
+    bytes32 public donId=0x66756e2d657468657265756d2d7365706f6c69612d3100000000000000000000;
+    address router = 0xb83E47C2bC239B3bf370bc41e1459A34b41238D0;
+    bytes32 public s_lastRequestId;
+    bytes public s_lastResponse;
+    bytes public s_lastError;
+
     constructor(
         uint256 _startDate,
         uint256 _endDate,
@@ -72,7 +83,7 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         address _usdcTokenAddress,
         LinkTokenInterface link,
         AutomationRegistrarInterface registrar
-    ) {
+    )  FunctionsClient(router) {
         startDate = _startDate;
         endDate = _endDate;
         minimumInvestment = _minimumInvestment;
@@ -133,9 +144,11 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
                 projectTeamWithdrawalPool += investmentPool;
                 investmentPool = 0;
                 resetVoting(); // Reset voting after decision is made
+                sendRequest(postVoteOutcomeSource, [addressToString(address(this)),"PASSED"], subscriptionId);
             } else {
                 // Voting failed, reset voting
                 resetVoting(); // Reset voting after decision is made
+                sendRequest(postVoteOutcomeSource, [addressToString(address(this)),"FAILED"], subscriptionId);
             }
         }
     }
@@ -147,6 +160,8 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
         );
 
         isVotingOpen = true;
+        sendRequest(requestVoteSource, [addressToString(address(this))], subscriptionId);
+
         //trigger ChainLink functions for sending notification to users to start voting
     }
 
@@ -260,16 +275,123 @@ contract DeFiCrowdFunding is AutomationCompatibleInterface {
     function performUpkeep(bytes calldata /* performData */) external override {
         if (block.timestamp >= endDate && !minimumReached && investmentPool != 0) {
             refundInvestors();
+            if(subscriptionId){
+                sendRequest(postUpdatesSource, [addressToString(address(this)),"REFUNDED"], subscriptionId);
+            }
         }
         if (block.timestamp >= endDate && minimumReached && !isInitialDisbursementToProjectTeamComplete) {
             //call notification Chainlink Function
             projectTeamWithdrawalPool = investmentPool / 2;
             investmentPool -= projectTeamWithdrawalPool;
             isInitialDisbursementToProjectTeamComplete = true;
+            sendRequest(postNotifyTransferPendingSource, [addressToString(address(this))], subscriptionId);
+
         }
         if (minimumReached && block.timestamp >= startDate && !isSuccessfulFundraiseNotificationSent) {
             // trigger CL Functions to send notification
             isSuccessfulFundraiseNotificationSent = true;
+            if(subscriptionId){
+                sendRequest(postUpdatesSource, [addressToString(address(this)),"FUNDED"], subscriptionId);
+            }
         }
     }
+
+    function addressToString(address _addr) internal pure returns (string memory) {
+        bytes32 value = bytes32(uint256(uint160(_addr)));
+        bytes memory alphabet = "0123456789abcdef";
+         
+        bytes memory str = new bytes(42);
+        str[0] = '0';
+        str[1] = 'x';
+         
+        for (uint256 i = 0; i < 20; i++) {
+            str[2 + i * 2] = alphabet[uint8(value[i + 12] >> 4)];
+            str[3 + i * 2] = alphabet[uint8(value[i + 12] & 0x0f)];
+        }
+         
+        return string(str);
+    }
+    
+
+    string requestVoteSource =
+        "const contractAddress = args[0];"
+        "const apiResponse = await Functions.makeHttpRequest({"
+        "url: `https://3a5e-116-87-35-218.ngrok-free.app/contract/voteRequest/${contractAddress}/`,"
+        " headers:{'ngrok-skip-browser-warning':'ignore'}"
+        "});"
+        "if (apiResponse.error) {"
+        "throw Error('Request failed');"
+        "}"
+        "console.log('API response data:', JSON.stringify(data, null, 2));"
+        "const { data } = apiResponse;"
+        "return Functions.encodeString(data.message);";
+
+    string postUpdatesSource =
+        "const contractAddress = args[0];"
+        "const stat = args[1];"
+        "const apiResponse = await Functions.makeHttpRequest({"
+        "url: `https://3a5e-116-87-35-218.ngrok-free.app/contract/updates/${contractAddress}/`,"
+        "method:'POST',"
+        "data:{status:stat},"
+        "headers:{"
+        "'ngrok-skip-browser-warning':'ignore',"
+        "'Content-Type': 'application/json'}"
+        "});"
+    "if (apiResponse.error) {"
+        "throw Error('Request failed');"
+        "}"
+        "const { data } = apiResponse;"
+        "return Functions.encodeString(data.message);";
+
+    string postVoteOutcomeSource =
+        "const contractAddress = args[0];"
+        "const voteRes = args[1];"
+        "const apiResponse = await Functions.makeHttpRequest({"
+        "url: `https://3a5e-116-87-35-218.ngrok-free.app/contract/voteOutcome/${contractAddress}/`,"
+        "method:'POST',"
+        "data:{outcome:voteRes},"
+        "headers:{"
+        "'ngrok-skip-browser-warning':'ignore',"
+        "'Content-Type': 'application/json'}"
+        "});"
+    "if (apiResponse.error) {"
+        "throw Error('Request failed');"
+        "}"
+        "const { data } = apiResponse;"
+        "return Functions.encodeString(data.message);";
+    
+    string postNotifyTransferPendingSource =
+        "const contractAddress = args[0];"
+        "const apiResponse = await Functions.makeHttpRequest({"
+        "url: `https://3a5e-116-87-35-218.ngrok-free.app/contract/notifyTransferPending/${contractAddress}/`,"
+        "headers:{"
+        "'ngrok-skip-browser-warning':'ignore'"
+        "});"
+    "if (apiResponse.error) {"
+        "throw Error('Request failed');"
+        "}"
+        "const { data } = apiResponse;"
+        "return Functions.encodeString(data.message);";
+    uint32 gasLimit = 300000;
+
+  function sendRequest(
+    string calldata source,
+    string[] calldata args,
+    uint64 subscriptionId
+  ) internal {
+    FunctionsRequest.Request memory req; // Struct API reference: https://docs.chain.link/chainlink-functions/api-reference/functions-request
+    req.initializeRequest(FunctionsRequest.Location.Inline, FunctionsRequest.CodeLanguage.JavaScript, source);
+    if (args.length > 0) {
+      req.setArgs(args);
+    }
+    s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donId);
+  }
+
+  function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
+    if (s_lastRequestId != requestId) {
+        revert UnexpectedRequestID(requestId); // Check if request IDs match
+        }
+    s_lastResponse = response;
+    s_lastError = err;
+  }
 }
