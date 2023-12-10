@@ -1,8 +1,9 @@
-import InvestmentComponent from "../components/InvestmentComponent";
-import React, { useEffect, useState } from "react";
-import { ethers } from "ethers";
-import { Project } from "../../../../backend/src/schemas/project.schema";
-import axios from "axios";
+import InvestmentComponent from '../components/InvestmentComponent';
+import React, { useEffect, useState } from 'react';
+import { ethers } from 'ethers';
+import { Project } from '../../../../backend/src/schemas/project.schema';
+import axios from 'axios';
+import ContractWorkflowBackers from '../components/ContractWorkflowBackersComponent';
 
 export interface ProgressMessage {
   message: string;
@@ -12,14 +13,10 @@ export interface ProgressMessage {
 function ProjectBackerPage() {
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [userAddress, setUserAddress] = useState<string | null>(null);
-  const [selectedProjectAddress, setSelectedProjectAddress] = useState<
-    string | undefined
-  >(undefined);
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
   const [fundedProjects, setFundedProjects] = useState<Project[]>([]);
-  const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>(
-    []
-  );
+  const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>([]);
 
   useEffect(() => {
     axios
@@ -48,29 +45,26 @@ function ProjectBackerPage() {
     if (window.ethereum) {
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
+        const accounts = await provider.send('eth_requestAccounts', []);
         setProvider(provider);
         setUserAddress(accounts[0]);
       } catch (error) {
         console.error(error);
       }
     } else {
-      alert("Metamask is not installed");
+      alert('Metamask is not installed');
     }
   };
 
   return (
     <div
       className="d-flex flex-column justify-content-start align-items-center"
-      style={{ height: "100vh", backgroundColor: "white", marginTop: "40px" }}
-    >
-      <h1 style={{ color: "blue", marginBottom: "20px" }}>
-        Welcome, Project Backer 👋
-      </h1>
+      style={{ height: '100vh', backgroundColor: 'white', marginTop: '40px' }}>
+      <h1 style={{ color: 'blue', marginBottom: '20px' }}>Welcome, Project Backer 👋</h1>
       <button className="btn btn-primary" onClick={connectWallet}>
         Connect Wallet
       </button>
-      <h3 style={{ marginTop: "40px" }}>Projects Seeking Funding</h3>
+      <h3 style={{ marginTop: '40px' }}>Projects Seeking Funding</h3>
       <div className="container-fluid mt-3 mb-3">
         <table className="table table-bordered">
           <thead>
@@ -92,45 +86,33 @@ function ProjectBackerPage() {
                   <a
                     target="_blank"
                     rel="noopener noreferrer"
-                    href={`https://sepolia.etherscan.io/address/${item?.contractAddress}`}
-                  >
-                    {item?.contractAddress ?? "Pending contract creation"}
+                    href={`https://sepolia.etherscan.io/address/${item?.contractAddress}`}>
+                    {item?.contractAddress ?? 'Pending contract creation'}
                   </a>
                 </td>
                 <td>{item?.startDate?.toString()}</td>
                 <td>{item?.endDate?.toString()}</td>
                 <td>USDC {item?.minInvestment}</td>
                 <td>{item?.quorom}</td>
-                <td
-                  className={`text-${
-                    item.status === "UNSTARTED" ? "info" : "success"
-                  }`}
-                >
-                  {item?.status}
-                </td>
+                <td className={`text-${item.status === 'UNSTARTED' ? 'info' : 'success'}`}>{item?.status}</td>
                 <td>
                   <button
                     className="btn btn-primary"
                     data-bs-toggle="modal"
                     data-bs-target="#investmentModal"
-                    onClick={() =>
-                      setSelectedProjectAddress(item.contractAddress)
-                    }
-                  >
-                    View
+                    onClick={() => setSelectedProject(item)}>
+                    Invest
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
           {activeProjects.length === 0 && (
-            <div className="alert alert-warning">
-              No projects seeking funding as of now.
-            </div>
+            <div className="alert alert-warning">No projects seeking funding as of now.</div>
           )}
         </table>
       </div>
-      <h3 style={{ marginTop: "20px" }}>Projects You Have Funded</h3>
+      <h3 style={{ marginTop: '20px' }}>Projects You Have Funded</h3>
       <div className="container-fluid mt-3 mb-3">
         <table className="table table-bordered">
           <thead>
@@ -152,37 +134,32 @@ function ProjectBackerPage() {
                   <a
                     target="_blank"
                     rel="noopener noreferrer"
-                    href={`https://sepolia.etherscan.io/address/${item?.contractAddress}`}
-                  >
-                    {item?.contractAddress ?? "Pending contract creation"}
+                    href={`https://sepolia.etherscan.io/address/${item?.contractAddress}`}>
+                    {item?.contractAddress ?? 'Pending contract creation'}
                   </a>
                 </td>
                 <td>{item?.startDate?.toString()}</td>
                 <td>{item?.endDate?.toString()}</td>
                 <td>USDC {item?.minInvestment}</td>
                 <td>{item?.quorom}</td>
-                <td
-                  className={`text-${
-                    item.status === "UNSTARTED" ? "info" : "success"
-                  }`}
-                >
-                  {item?.status}
-                </td>
+                <td className={`text-${item.status === 'UNSTARTED' ? 'info' : 'success'}`}>{item?.status}</td>
                 <td>
-                  <button onClick={() => {}}>View</button>
+                  <button
+                    className="btn btn-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#contractWorkflowModal"
+                    onClick={() => setSelectedProject(item)}>
+                    View
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
           {fundedProjects.length === 0 && !userAddress && (
-            <div className="alert alert-warning">
-              Login to Metmask to see your funded projects.
-            </div>
+            <div className="alert alert-warning">Login to Metmask to see your funded projects.</div>
           )}
           {fundedProjects.length === 0 && userAddress && (
-            <div className="alert alert-warning">
-              You have not funded any projects yet.
-            </div>
+            <div className="alert alert-warning">You have not funded any projects yet.</div>
           )}
         </table>
       </div>
@@ -191,13 +168,11 @@ function ProjectBackerPage() {
         id="investmentModal"
         role="dialog"
         aria-labelledby="investmentModalLabel"
-        aria-hidden="true"
-      >
+        aria-hidden="true">
         <div
           className="modal-dialog modal-dialog-centered"
           role="document"
-          style={{ minWidth: "25vw", minHeight: "25vh" }}
-        >
+          style={{ minWidth: '25vw', minHeight: '25vh' }}>
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title" id="investmentModalLabel">
@@ -209,27 +184,51 @@ function ProjectBackerPage() {
                 data-bs-dismiss="modal"
                 aria-label="Close"
                 onClick={() => {
-                    setSelectedProjectAddress(undefined);
-                    setProgressMessages([]);
-                }}
-              ></button>
+                  setSelectedProject(undefined);
+                  setProgressMessages([]);
+                }}></button>
             </div>
             <div className="modal-body">
               <InvestmentComponent
                 provider={provider}
                 userAddress={userAddress}
-                projectContractAddress={selectedProjectAddress}
+                project={selectedProject}
                 setProgressMessages={setProgressMessages}
               />
               {progressMessages.length > 0 &&
                 progressMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`alert alert-${msg.type} overflow-auto`}
-                  >
+                  <div key={idx} className={`alert alert-${msg.type} overflow-auto`}>
                     {msg.message}
                   </div>
                 ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        className="modal fade"
+        id="contractWorkflowModal"
+        role="dialog"
+        aria-labelledby="contractWorkflowModalLabel"
+        aria-hidden="true">
+        <div
+          className="modal-dialog modal-dialog-centered"
+          role="document"
+          style={{ minWidth: '50vw', minHeight: '25vh' }}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title" id="contractWorkflowModalLabel">
+                Contract Workflow
+              </h5>
+              <button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+                onClick={() => setSelectedProject(undefined)}></button>
+            </div>
+            <div className="modal-body">
+              {selectedProject && <ContractWorkflowBackers project={selectedProject} userAddress={userAddress} />}
             </div>
           </div>
         </div>

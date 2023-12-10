@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { ethers } from "ethers";
-import { Project } from "../../../../backend/src/schemas/project.schema";
-import axios from "axios";
-import ContractWorkflow from "../components/ContractWorkflowComponent";
+import React, { useEffect, useState } from 'react';
+import { ethers } from 'ethers';
+import { Project } from '../../../../backend/src/schemas/project.schema';
+import axios from 'axios';
+import ContractWorkflow from '../components/ContractWorkflowComponent';
 
 function ProjectTeamPage() {
-  const [userAddress, setUserAddress] = useState<string | null>("");
+  const [userAddress, setUserAddress] = useState<string | null>('');
   const [projectDetails, setProjectDetails] = useState<Project | undefined>({
-    name: "",
+    name: '',
     owners: [],
     startDate: new Date(),
     endDate: new Date(),
@@ -16,9 +16,7 @@ function ProjectTeamPage() {
     status: undefined,
   });
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | undefined>(
-    undefined
-  );
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
 
   useEffect(() => {
     if (!userAddress) {
@@ -31,13 +29,11 @@ function ProjectTeamPage() {
   }, [userAddress]);
 
   function fetchAllActiveProjects() {
-    axios
-      .get(`http://localhost:3001/project/owned/${userAddress}`)
-      .then((res) => {
-        if (res.status === 200) {
-          setActiveProjects(res.data.projects.reverse());
-        }
-      });
+    axios.get(`http://localhost:3001/project/owned/${userAddress}`).then((res) => {
+      if (res.status === 200) {
+        setActiveProjects(res.data.projects.reverse());
+      }
+    });
   }
 
   // Connect to Metamask
@@ -45,13 +41,13 @@ function ProjectTeamPage() {
     if (window.ethereum) {
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
+        const accounts = await provider.send('eth_requestAccounts', []);
         setUserAddress(accounts[0]);
       } catch (error) {
         console.error(error);
       }
     } else {
-      alert("Metamask is not installed");
+      alert('Metamask is not installed');
     }
   };
 
@@ -72,17 +68,22 @@ function ProjectTeamPage() {
     setProjectDetails(undefined);
   }
 
-  function formatDate(date) {
+  function formatDateToDateTimeLocal(date) {
     if (!date) return;
+
     const d = new Date(date);
-    let month = "" + (d.getMonth() + 1);
-    let day = "" + d.getDate();
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
     let year = d.getFullYear();
+    let hours = '' + d.getHours();
+    let minutes = '' + d.getMinutes();
 
-    if (month.length < 2) month = "0" + month;
-    if (day.length < 2) day = "0" + day;
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+    if (hours.length < 2) hours = '0' + hours;
+    if (minutes.length < 2) minutes = '0' + minutes;
 
-    return `${year}-${month}-${day}`;
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
   function handleDeployContract(id: string) {
@@ -94,9 +95,7 @@ function ProjectTeamPage() {
         })
         .then((res) => {
           if (res.status === 200) {
-            window.alert(
-              `Contract successfully deployed! Contract address: ${res.data.contractAddress}`
-            );
+            window.alert(`Contract successfully deployed! Contract address: ${res.data.contractAddress}`);
             fetchAllActiveProjects();
           }
         });
@@ -106,11 +105,8 @@ function ProjectTeamPage() {
   return (
     <div
       className="d-flex flex-column justify-content-start align-items-center"
-      style={{ height: "100vh", backgroundColor: "white", marginTop: "40px" }}
-    >
-      <h1 style={{ color: "blue", marginBottom: "20px" }}>
-        Welcome, Project Team 🧑‍💻
-      </h1>
+      style={{ height: '100vh', backgroundColor: 'white', marginTop: '40px' }}>
+      <h1 style={{ color: 'blue', marginBottom: '20px' }}>Welcome, Project Team 🧑‍💻</h1>
       <button className="btn btn-primary" onClick={connectWallet}>
         Connect Wallet
       </button>
@@ -126,9 +122,7 @@ function ProjectTeamPage() {
               className="form-control"
               id="ownerWallet"
               value={userAddress}
-              onChange={(e) =>
-                setProjectDetails({ ...projectDetails, owners: [userAddress] })
-              }
+              onChange={(e) => setProjectDetails({ ...projectDetails, owners: [userAddress] })}
             />
           </div>
 
@@ -137,10 +131,10 @@ function ProjectTeamPage() {
               Start Date (use date picker)
             </label>
             <input
-              type="date"
+              type="datetime-local"
               className="form-control"
               id="startDate"
-              value={formatDate(projectDetails?.startDate)}
+              value={formatDateToDateTimeLocal(projectDetails?.startDate)}
               onChange={(e) =>
                 setProjectDetails({
                   ...projectDetails,
@@ -155,10 +149,10 @@ function ProjectTeamPage() {
               End Date (use date picker)
             </label>
             <input
-              type="date"
+              type="datetime-local"
               className="form-control"
               id="endDate"
-              value={formatDate(projectDetails?.endDate)}
+              value={formatDateToDateTimeLocal(projectDetails?.endDate)}
               onChange={(e) =>
                 setProjectDetails({
                   ...projectDetails,
@@ -213,9 +207,7 @@ function ProjectTeamPage() {
               className="form-control"
               id="name"
               value={projectDetails?.name}
-              onChange={(e) =>
-                setProjectDetails({ ...projectDetails, name: e.target.value })
-              }
+              onChange={(e) => setProjectDetails({ ...projectDetails, name: e.target.value })}
             />
           </div>
 
@@ -225,7 +217,7 @@ function ProjectTeamPage() {
         </form>
       </div>
 
-      <h3 style={{ marginTop: "20px" }}>Projects You Have Started</h3>
+      <h3 style={{ marginTop: '20px' }}>Projects You Have Started</h3>
       <div className="container-fluid mt-3 mb-3">
         <table className="table table-bordered">
           <thead>
@@ -247,43 +239,31 @@ function ProjectTeamPage() {
                   <a
                     target="_blank"
                     rel="noopener noreferrer"
-                    href={`https://sepolia.etherscan.io/address/${item?.contractAddress}`}
-                  >
-                    {item?.contractAddress ?? "Pending contract creation"}
+                    href={`https://sepolia.etherscan.io/address/${item?.contractAddress}`}>
+                    {item?.contractAddress ?? 'Pending contract creation'}
                   </a>
                 </td>
-                <td>{item?.startDate.toString()}</td>
-                <td>{item?.endDate.toString()}</td>
+                <td>{item?.startDate?.toString()}</td>
+                <td>{item?.endDate?.toString()}</td>
                 <td>USDC {item?.minInvestment}</td>
                 <td>{item?.quorom}</td>
-                <td
-                  className={`text-${
-                    item.status === "UNSTARTED" ? "info" : "success"
-                  }`}
-                >
-                  {item?.status}
-                </td>
+                <td className={`text-${item.status === 'UNSTARTED' ? 'info' : 'success'}`}>{item?.status}</td>
                 <td>
                   <button
                     className="btn btn-primary"
                     data-bs-toggle="modal"
                     data-bs-target="#investmentModal"
                     onClick={() =>
-                      item?.status === "UNSTARTED"
-                        ? handleDeployContract(item?.id)
-                        : setSelectedProject(item)
-                    }
-                  >
-                    {item?.status !== "DEPLOYED" ? "DEPLOY" : "VIEW"}
+                      item?.status === 'UNSTARTED' ? handleDeployContract(item?.id) : setSelectedProject(item)
+                    }>
+                    {item?.status !== 'DEPLOYED' ? 'DEPLOY' : 'VIEW'}
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
           {activeProjects.length === 0 && (
-            <div className="alert alert-warning">
-              You do not have any funded projects yet.
-            </div>
+            <div className="alert alert-warning">You do not have any funded projects yet.</div>
           )}
         </table>
       </div>
@@ -292,30 +272,25 @@ function ProjectTeamPage() {
         id="investmentModal"
         role="dialog"
         aria-labelledby="investmentModalLabel"
-        aria-hidden="true"
-      >
+        aria-hidden="true">
         <div
           className="modal-dialog modal-dialog-centered"
           role="document"
-          style={{ minWidth: "50vw", minHeight: "25vh" }}
-        >
+          style={{ minWidth: '50vw', minHeight: '25vh' }}>
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title" id="investmentModalLabel">
-                Invest in Project
+                Contract Workflow
               </h5>
               <button
                 type="button"
                 className="btn-close"
                 data-bs-dismiss="modal"
                 aria-label="Close"
-                onClick={() => setSelectedProject(undefined)}
-              ></button>
+                onClick={() => setSelectedProject(undefined)}></button>
             </div>
             <div className="modal-body">
-              {selectedProject && (
-                <ContractWorkflow project={selectedProject} />
-              )}
+              {selectedProject && <ContractWorkflow project={selectedProject} userAddress={userAddress} />}
             </div>
           </div>
         </div>

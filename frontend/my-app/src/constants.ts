@@ -522,3 +522,5 @@ export const genericERC20ABI = [
     type: "function",
   },
 ];
+
+export const linkTokenAddress = "0x779877A7B0D9E8603169DdbD7836e478b4624789";
